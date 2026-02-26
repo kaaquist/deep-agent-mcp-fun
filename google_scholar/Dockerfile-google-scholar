@@ -1,0 +1,49 @@
+FROM node:lts-alpine
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git python3 make g++
+
+# Clone the repository
+ARG REPO_URL=https://github.com/mochow13/google-scholar-mcp.git
+ARG BRANCH=main
+# This here sha was the one that was main when we adopted the MCP server. 
+ARG COMMIT_SHA=258b00a80f7f17cbe9a3227c488a519674fd3869
+RUN git clone --depth 1 --branch ${BRANCH} ${REPO_URL} .
+# reset to known version of the MCP server.
+RUN git reset --hard ${COMMIT_SHA}
+
+# Install dependencies
+RUN cp server/package.json server/package-lock.json ./
+RUN npm install --production --ignore-scripts
+
+# Install build tools
+RUN npm install typescript --no-save
+
+# Copy source and patch port usage
+RUN cp server/tsconfig.json ./tsconfig.json
+RUN cp -R server/src ./src
+
+# Patch index.ts to use env PORT
+RUN sed -i "s/const PORT = 3000;/const PORT = parseInt(process.env.PORT || '3000', 10);/" src/index.ts
+
+# Build project
+RUN npm run build
+
+RUN apk add --no-cache tini curl jq
+
+# Create a non-root user
+RUN addgroup -g 1001 -S mcp && \
+    adduser -S mcp -u 1001 -G mcp && \
+    chown -R mcp:mcp /app
+
+USER mcp
+
+EXPOSE 3000
+
+# Use tini as init system for proper signal handling
+ENTRYPOINT ["/sbin/tini", "--", "node", "build/index.js"]
+
+# Default command runs the MCP server as is.
+# CMD ["node", "build/index.js"]

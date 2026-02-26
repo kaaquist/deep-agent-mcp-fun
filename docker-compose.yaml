@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  google-scholar-mcp:
+    build:
+      context: google_scholar
+      dockerfile: ./Dockerfile-google-scholar
+    ports:
+      - 3001:3000
+    expose:
+      - 3001
+    networks:
+      backend_net:
+        ipv4_address: 172.28.1.6
+  pubmed-mcp:
+    build:
+      context: pubmed
+      dockerfile: ./Dockerfile-pubmed-mcp-server
+    ports:
+      - 3017:3017
+    expose:
+      - 3017
+    networks:
+      backend_net:
+        ipv4_address: 172.28.1.7
+  ollama:
+    build:
+      context: ollama
+      dockerfile: ./Dockerfile-ollama
+    image: ollama
+    container_name: ollama
+    entrypoint: /opt/start_ollama.sh
+    ports:
+      - 11435:11434
+    expose:
+      - 11434
+    volumes:
+      - ollama_volume:/root/.ollama
+    tty: true
+    restart: always
+    networks:
+      backend_net:
+        ipv4_address: 172.28.1.5
+
+# Names our volume
+volumes:
+  ollama_volume:
+
+networks:
+  backend_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
