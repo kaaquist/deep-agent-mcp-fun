@@ -1,29 +1,23 @@
-from tarfile import version
-
-from langchain_core.runnables import RunnableConfig
-from langchain_ollama import ChatOllama
-from langgraph_supervisor import create_supervisor
-from langchain.agents import create_agent
-from langchain.agents.middleware import HumanInTheLoopMiddleware
-from langgraph.checkpoint.memory import MemorySaver
-
-from langchain_core.messages import HumanMessage
-from langchain_mcp_adapters.client import MultiServerMCPClient
 import asyncio
 import logging
 
 import chainlit as cl
+from langchain.agents import create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langchain_core.messages import HumanMessage
+from langchain_core.runnables import RunnableConfig
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_ollama import ChatOllama
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph_supervisor import create_supervisor
 
 logger = logging.getLogger("__NAME__")
+
 
 # Create a supervisor graph
 async def create_multi_agent_graph():
     """Create a LangGraph graph with a supervisor and MCP servers."""
-    ollama_chat_llm = ChatOllama(
-        base_url="http://localhost:11435",
-        model="llama3.1:8b",
-        temperature=0.0
-    )
+    ollama_chat_llm = ChatOllama(base_url="http://localhost:11435", model="llama3.1:8b", temperature=0.0)
 
     client = MultiServerMCPClient(
         {
@@ -31,10 +25,7 @@ async def create_multi_agent_graph():
                 "url": "http://localhost:3017/mcp",
                 "transport": "streamable_http",
             },
-            "google-scholar": {
-                "url": "http://localhost:3001/mcp",
-                "transport": "streamable_http"
-            }
+            "google-scholar": {"url": "http://localhost:3001/mcp", "transport": "streamable_http"},
         }
     )
     search_tools = await client.get_tools()
@@ -67,7 +58,7 @@ async def create_multi_agent_graph():
                 description_prefix="Tool execution pending approval",
             ),
         ],
-        checkpointer=MemorySaver()
+        checkpointer=MemorySaver(),
     )
 
     # Create the supervisor
@@ -96,7 +87,7 @@ async def create_multi_agent_graph():
         #         description_prefix="Tool execution pending approval",
         #     ),
         # ],
-        #add_handoff_back_messages=False,
+        # add_handoff_back_messages=False,
         output_mode="last_message",
     )
     return supervisor.compile(checkpointer=MemorySaver())
@@ -115,11 +106,16 @@ async def run(msg: cl.Message):
     historic_messages.append(msg.content)
     cb = cl.LangchainCallbackHandler()
     final_answer = cl.Message(content="")
-    async for metadata, mode, chunk in graph.astream({"messages": historic_messages}, stream_mode=["updates", "messages"], subgraphs=True, config=RunnableConfig(callbacks=[cb], **config)):
+    async for metadata, mode, chunk in graph.astream(
+        {"messages": historic_messages},
+        stream_mode=["updates", "messages"],
+        subgraphs=True,
+        config=RunnableConfig(callbacks=[cb], **config),
+    ):
         logger.info(f"!!!! mode: {mode} \n\n chunk: {chunk} \n\n\n\n")
         if (
-                mode == "messages"
-                #and not isinstance(messages, HumanMessage)
+            mode == "messages"
+            # and not isinstance(messages, HumanMessage)
         ):
             token, _ = chunk
             if not isinstance(token, HumanMessage):
@@ -129,9 +125,8 @@ async def run(msg: cl.Message):
             if "__interrupt__" in chunk:
                 logger.info(f"!!!!! \n\n\n\nInterrupt: {chunk['__interrupt__']}\n\n\n\n\n")
 
-
-
     await final_answer.send()
+
 
 def main():
     loop = asyncio.get_event_loop()
