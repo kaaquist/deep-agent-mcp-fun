@@ -3,9 +3,10 @@ from tarfile import version
 from langchain_core.runnables import RunnableConfig
 from langchain_ollama import ChatOllama
 from langgraph_supervisor import create_supervisor
+from deepagents import create_deep_agent
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.memory import InMemorySaver
 
 from langchain_core.messages import HumanMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -67,7 +68,7 @@ async def create_multi_agent_graph():
                 description_prefix="Tool execution pending approval",
             ),
         ],
-        checkpointer=MemorySaver()
+        checkpointer=InMemorySaver()
     )
 
     # Create the supervisor
@@ -99,7 +100,20 @@ async def create_multi_agent_graph():
         #add_handoff_back_messages=False,
         output_mode="last_message",
     )
-    return supervisor.compile(checkpointer=MemorySaver())
+
+    create_deep_agent(
+        model=ollama_chat_llm,
+        system_prompt=(
+            "You are a supervisor managing one agent:\n"
+            "- a search agent.\n"
+            "INSTRUCTIONS:\n"
+            "- Assign search of article and medical abstract related tasks to the search agent\n"
+            "- Do formatting of the text or other related queries related to formatting of the results"
+            "- Don't do any other work yourself."
+        ),
+
+    )
+    return supervisor.compile(checkpointer=InMemorySaver())
 
 
 @cl.on_message
