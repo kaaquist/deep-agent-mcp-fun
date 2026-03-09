@@ -109,8 +109,7 @@ exclude = [
 # Longer line length
 line-length = 120
 indent-width = 4
-# Assume Python 3.11
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 # Linting code rules
