@@ -19,9 +19,119 @@ dependencies = [
     "deepagents>=0.4.4",
 ]
 
+[dependency-groups]
+dev = [
+    "mypy==1.15.0",
+    "python-dotenv==1.1.0",
+    "pytest==7.4.3",
+    "pytest-asyncio==0.23.8",
+    "pytest-cov==4.1.0",
+    "pytest-dependency==0.6.0",
+    "pytest-env",
+    "pytest-html==4.1.1",
+    "pytest-xdist==3.8.0",
+    "ruff>=0.14.11",
+]
+
 [project.scripts]
 client = "client.client:run"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+
+[tool.pytest.ini_options]
+addopts = "--cov-config=pyproject.toml --cov --cov-report=html --cov-report=term-missing --html=tests/reports/testreport.html --self-contained-html -m \"not integration and not testcontainers\" "
+testpaths = ["tests/unit"]
+log_cli = true
+log_cli_level = "INFO"
+console_output_style = "count"
+markers = [
+    "integration: integrates to dev environment - and do not run by default!",
+    "testcontainers: these tests need docker to run, and will fail if testcontainers are not up",
+]
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[tool.pytest_env]
+PYTEST_IS_RUNNING = 1
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 70
+
+[tool.coverage.html]
+directory = "tests/reports/htmlcov"
+skip_empty = true
+
+[tool.mypy]
+packages = ["src", "tests"]
+exclude = [".venv", "venv"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disable_error_code = ["method-assign"]
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+# Longer line length
+line-length = 120
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.lint]
+# Linting code rules
+# we should add UP, D, and N later
+select = ["E4", "E7", "E9", "F", "I"]
+ignore = []
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+docstring-code-format = true
