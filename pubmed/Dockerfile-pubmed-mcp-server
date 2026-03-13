@@ -21,12 +21,11 @@ RUN apk add --no-cache \
 
 # Clone the repository
 ARG REPO_URL=https://github.com/cyanheads/pubmed-mcp-server.git
-ARG BRANCH=main
 # This here sha was the one that was main when we adopted the MCP server. 
 ARG TAG=v1.4.4
-RUN git clone --depth 1 --branch ${BRANCH} ${REPO_URL} .
+RUN git clone ${REPO_URL} .
 # reset to known version of the MCP server.
-RUN git checkout v1.4.4
+RUN git checkout ${TAG}
 
 # Copy package definitions to leverage Docker layer caching.
 # COPY package.json package-lock.json* ./
